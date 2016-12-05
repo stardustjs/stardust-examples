@@ -1,0 +1,1 @@
+An isotype-based visualization created with the [Stardust](https://stardust-vis.github.io/) library. Data is generated randomly.
