@@ -5,7 +5,7 @@ import markdown
 import mustache
 import yaml
 
-OUTPUT_ROOT = "../stardust-vis.github.io/examples"
+OUTPUT_ROOT = "../stardustjs.github.io/examples"
 
 template = """---
 layout: default

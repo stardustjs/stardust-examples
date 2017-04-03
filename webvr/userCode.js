@@ -1,43 +1,8 @@
 function UserCode(platform, callback) {
     d3.json("beethoven.json", (err, DATA) => {
-    // // Convert the SVG file to Stardust mark spec.
-    // let cube = Stardust.mark.custom()
-    //     .input("x", "float")
-    //     .input("y", "float")
-    //     .input("z", "float")
-    // cube
-    //     .add("P3D.Cube")
-    //         .attr("center", "Vector3(x, y, z)")
-    //         .attr("radius", "1")
-    //         .attr("color", "Color(1, 1, 1, 1)")
 
-    // // Create the mark object.
-    // let cubes = Stardust.mark.create(cube, platform);
-
-    // cubes.attr("x", (d) => d.x);
-    // cubes.attr("y", (d) => d.y);
-    // cubes.attr("z", (d) => d.z);
-    // let data = [];
-    // for(let i = -3; i <= 3; i++) {
-    //     for(let j = -3; j <= 3; j++) {
-    //         for(let k = -3; k <= 3; k++) {
-    //             if(i * j * k != 0) {
-    //                 data.push({ x: i * 10, y: j * 10, z: k * 10 });
-    //             }
-    //         }
-    //     }
-    // }
-    // cubes.data(data);
-
-    // function render() {
-    //     cubes.render();
-    // }
-
-    // return {
-    //     render: render
-    // };
         let marks = Stardust.mark.compile(`
-            import Triangle from P3D;
+            import { Triangle } from P3D;
 
             mark Point(
                 center: Vector3,
