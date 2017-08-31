@@ -14,7 +14,7 @@ var mark;
 })(mark = exports.mark || (exports.mark = {}));
 require("stardust-webgl");
 
-},{"stardust-core":27,"stardust-isotype":28,"stardust-webgl":30}],2:[function(require,module,exports){
+},{"stardust-core":27,"stardust-isotype":28,"stardust-webgl":33}],2:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -68,6 +68,7 @@ var Array = (function (_super) {
                 this._textureData = {
                     width: this._data.length,
                     height: 1,
+                    dimensions: 1,
                     numberComponents: numberComponents,
                     data: array_1
                 };
@@ -98,15 +99,10 @@ var Array = (function (_super) {
     return Array;
 }(TextureBinding));
 exports.Array = Array;
-// export class Grid extends TextureBinding  {
-// }
 function array() {
     return new Array();
 }
 exports.array = array;
-// export function grid(): Grid {
-//     return new Grid();
-// } 
 
 },{"./types":4}],3:[function(require,module,exports){
 // binding.js:
@@ -5785,6 +5781,9 @@ function RegisterOperator(name, argTypes, returnType, func) {
         name: "@" + name, argTypes: argTypes, returnType: returnType, javascriptImplementation: func
     });
 }
+function not_implemented() {
+    throw new Error("not implemented");
+}
 var RegisterConstructor = function (type, srcTypes, func) { return RegisterFunction(type, srcTypes, type, func); };
 // Basic arithmetics: +, -, *, /.
 RegisterOperator("+", ["float", "float"], "float", function (a, b) { return a + b; });
@@ -5851,6 +5850,7 @@ RegisterConstructor("Vector4", ["float", "float", "float", "float"], function (a
 RegisterConstructor("Color", ["float", "float", "float", "float"], function (a, b, c, d) { return [a, b, c, d]; });
 RegisterConstructor("Quaternion", ["float", "float", "float", "float"], function (a, b, c, d) { return [a, b, c, d]; });
 // Math functions.
+RegisterFunction("abs", ["float"], "float", function (a) { return Math.abs(a); });
 RegisterFunction("sqrt", ["float"], "float", function (a) { return Math.sqrt(a); });
 RegisterFunction("exp", ["float"], "float", function (a) { return Math.exp(a); });
 RegisterFunction("log", ["float"], "float", function (a) { return Math.log(a); });
@@ -5861,6 +5861,7 @@ RegisterFunction("asin", ["float"], "float", function (a) { return Math.asin(a);
 RegisterFunction("acos", ["float"], "float", function (a) { return Math.acos(a); });
 RegisterFunction("atan", ["float"], "float", function (a) { return Math.atan(a); });
 RegisterFunction("atan2", ["float", "float"], "float", function (a, b) { return Math.atan2(a, b); });
+RegisterFunction("abs", ["int"], "int", function (a) { return Math.abs(a); });
 RegisterFunction("min", ["int", "int"], "int", function (a, b) { return Math.min(a, b); });
 RegisterFunction("max", ["int", "int"], "int", function (a, b) { return Math.max(a, b); });
 RegisterFunction("min", ["float", "float"], "float", function (a, b) { return Math.min(a, b); });
@@ -5922,15 +5923,26 @@ RegisterTypeConversion("Quaternion", "Vector4", 0, function (a) { return a; });
 RegisterTypeConversion("Vector4", "Quaternion", 0, function (a) { return a; });
 RegisterTypeConversion("Color", "Vector4", 0, function (a) { return a; });
 RegisterTypeConversion("Vector4", "Color", 0, function (a) { return a; });
+RegisterTypeConversion("Vector4Array", "ColorArray", 0, function (a) { return a; });
+RegisterTypeConversion("ColorArray", "Vector4Array", 0, function (a) { return a; });
+RegisterTypeConversion("Vector4Array2D", "Image", 0, function (a) { return a; });
+RegisterTypeConversion("Image", "Vector4Image", 0, function (a) { return a; });
 // Constants
 addConstant("PI", "float", Math.PI);
 addConstant("SQRT2", "float", Math.SQRT2);
 addConstant("SQRT1_2", "float", Math.SQRT1_2);
 addConstant("RED", "Color", [1, 0, 0, 1]);
-RegisterFunction("array", ["FloatArray", "float"], "float", function (color) { return color; });
-RegisterFunction("array", ["Vector2Array", "float"], "Vector2", function (color) { return color; });
-RegisterFunction("array", ["Vector3Array", "float"], "Vector3", function (color) { return color; });
-RegisterFunction("array", ["Vector4Array", "float"], "Vector4", function (color) { return color; });
+// Array and image
+RegisterFunction("array", ["FloatArray", "float"], "float", not_implemented);
+RegisterFunction("array", ["Vector2Array", "float"], "Vector2", not_implemented);
+RegisterFunction("array", ["Vector3Array", "float"], "Vector3", not_implemented);
+RegisterFunction("array", ["Vector4Array", "float"], "Vector4", not_implemented);
+RegisterFunction("array", ["ColorArray", "float"], "Color", not_implemented);
+RegisterFunction("image", ["Image", "Vector2"], "Color", not_implemented);
+RegisterFunction("image", ["Vector4Image", "Vector2"], "Vector4", not_implemented);
+RegisterFunction("image", ["Vector3Image", "Vector2"], "Vector3", not_implemented);
+RegisterFunction("image", ["Vector2Image", "Vector2"], "Vector2", not_implemented);
+RegisterFunction("image", ["FloatImage", "Vector2"], "float", not_implemented);
 
 },{"../math/math":18,"../utils/utils":26}],13:[function(require,module,exports){
 "use strict";
@@ -6347,6 +6359,10 @@ var shader;
         return shader.compile("\n            shader Default(\n                color: Color = [ 0, 0, 0, 1 ]\n            ) {\n                emit { color: color };\n            }\n        ")["Default"];
     }
     shader.basic = basic;
+    function lighting() {
+        return shader.compile("\n            shader Default(\n                color: Color = [ 0, 0, 0, 1 ],\n                normal: Vector3,\n                position: Vector3\n            ) {\n                let lighting = normalize(position);\n                let NdotL = abs(dot(normal, lighting));\n                let s = NdotL * 0.5 + 0.5;\n                emit { color: Color(s * color.r, s * color.g, s * color.b, color.a) };\n            }\n        ")["Default"];
+    }
+    shader.lighting = lighting;
 })(shader = exports.shader || (exports.shader = {}));
 
 },{"../compiler/compiler":6,"../compiler/declare":7,"../platform/platform":19,"./mark":16}],18:[function(require,module,exports){
@@ -7295,7 +7311,7 @@ exports.timeTask = timeTask;
 function __export(m) {
     for (var p in m) if (!exports.hasOwnProperty(p)) exports[p] = m[p];
 }
-exports.version = "0.0.1";
+exports.version = "0.1.1";
 // Math classes and utilities
 __export(require("./core/utils/utils"));
 __export(require("./core/math/math"));
@@ -8048,96 +8064,104 @@ earcut.flatten = function (data) {
 };
 
 },{}],30:[function(require,module,exports){
+// Common code for GLSL-based shader languages
 "use strict";
-exports.version = "0.0.1";
-var webgl_1 = require("./webgl/webgl");
-exports.WebGLPlatform = webgl_1.WebGLPlatform;
-exports.WebGLCanvasPlatform2D = webgl_1.WebGLCanvasPlatform2D;
-exports.WebGLCanvasPlatform3D = webgl_1.WebGLCanvasPlatform3D;
-exports.WebGLCanvasPlatformWebVR = webgl_1.WebGLCanvasPlatformWebVR;
-var stardust_core_1 = require("stardust-core");
-var webgl_2 = require("./webgl/webgl");
-stardust_core_1.registerPlatformConstructor("webgl-2d", function (canvas, width, height) {
-    if (width === void 0) { width = 600; }
-    if (height === void 0) { height = 400; }
-    return new webgl_2.WebGLCanvasPlatform2D(canvas, width, height);
-});
-stardust_core_1.registerPlatformConstructor("webgl-3d", function (canvas, width, height) {
-    if (width === void 0) { width = 600; }
-    if (height === void 0) { height = 400; }
-    return new webgl_2.WebGLCanvasPlatform3D(canvas, width, height);
-});
-stardust_core_1.registerPlatformConstructor("webgl-webvr", function (canvas, width, height) {
-    if (width === void 0) { width = 600; }
-    if (height === void 0) { height = 400; }
-    return new webgl_2.WebGLCanvasPlatformWebVR(canvas, width, height);
-});
-
-},{"./webgl/webgl":34,"stardust-core":27}],31:[function(require,module,exports){
-"use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 var types_1 = require("./types");
 var intrinsics_1 = require("./intrinsics");
-(function (GenerateMode) {
-    GenerateMode[GenerateMode["NORMAL"] = 0] = "NORMAL";
-    GenerateMode[GenerateMode["PICK"] = 1] = "PICK";
-    GenerateMode[GenerateMode["FRAGMENT"] = 2] = "FRAGMENT";
-})(exports.GenerateMode || (exports.GenerateMode = {}));
-var GenerateMode = exports.GenerateMode;
-(function (ViewType) {
-    ViewType[ViewType["VIEW_2D"] = 0] = "VIEW_2D";
-    ViewType[ViewType["VIEW_3D"] = 1] = "VIEW_3D";
-    ViewType[ViewType["VIEW_WEBVR"] = 2] = "VIEW_WEBVR"; // WebVR mode.
-})(exports.ViewType || (exports.ViewType = {}));
-var ViewType = exports.ViewType;
-var CodeGenerator = (function () {
-    function CodeGenerator(viewType, mode) {
-        if (mode === void 0) { mode = GenerateMode.NORMAL; }
-        this._mode = mode;
-        this._viewType = viewType;
+var stardust_core_1 = require("stardust-core");
+var LinesGenerator = (function () {
+    function LinesGenerator() {
         this._lines = [];
-        this._additionalCodes = [];
         this._currentIndent = "";
-        this._hasColor = false;
+        this._blocks = new stardust_core_1.Dictionary();
     }
-    CodeGenerator.prototype.addLine = function (code) {
+    LinesGenerator.prototype.addNamedBlock = function (name, code) {
+        if (this._blocks.has(name)) {
+            this._blocks.set(name, this._blocks.get(name) + "\n" + code);
+        }
+        else {
+            this._blocks.set(name, code);
+        }
+    };
+    LinesGenerator.prototype.addLine = function (code) {
         this._lines.push(this._currentIndent + code);
     };
-    CodeGenerator.prototype.addAdditionalCode = function (code) {
-        if (this._additionalCodes.indexOf(code) < 0) {
-            this._additionalCodes.push(code);
-        }
-    };
-    CodeGenerator.prototype.indent = function () {
+    LinesGenerator.prototype.indent = function () {
         this._currentIndent += "    ";
     };
-    CodeGenerator.prototype.unindent = function () {
+    LinesGenerator.prototype.unindent = function () {
         this._currentIndent = this._currentIndent.slice(0, this._currentIndent.length - 4);
     };
-    CodeGenerator.prototype.addDeclaration = function (name, type) {
-        this.addLine(types_1.convertTypeName(type) + " " + name + ";");
+    LinesGenerator.prototype.getCode = function () {
+        var _this = this;
+        return this._lines.map(function (line) {
+            if (line[0] == "@" && _this._blocks.has(line.substr(1))) {
+                return _this._blocks.get(line.substr(1));
+            }
+            else {
+                return line;
+            }
+        }).join("\n");
     };
-    CodeGenerator.prototype.addUniform = function (name, type) {
+    return LinesGenerator;
+}());
+exports.LinesGenerator = LinesGenerator;
+// The basic GLSL generator
+var ShaderGenerator = (function (_super) {
+    __extends(ShaderGenerator, _super);
+    function ShaderGenerator() {
+        _super.call(this);
+    }
+    ShaderGenerator.prototype.addAdditionalCode = function (code) {
+        this.addNamedBlock("additionalCode", code);
+    };
+    ShaderGenerator.prototype.addDeclaration = function (name, type, modifier) {
+        if (modifier === void 0) { modifier = null; }
+        if (modifier == null) {
+            this.addLine(types_1.convertTypeName(type) + " " + name + ";");
+        }
+        else {
+            this.addLine(modifier + " " + types_1.convertTypeName(type) + " " + name + ";");
+        }
+    };
+    ShaderGenerator.prototype.addArrayDeclaration = function (name, type, count, modifier) {
+        if (count === void 0) { count = 1; }
+        if (modifier === void 0) { modifier = null; }
+        if (modifier == "null") {
+            this.addLine(types_1.convertTypeName(type) + "[" + count + "] " + name + ";");
+        }
+        else {
+            this.addLine(modifier + " " + types_1.convertTypeName(type) + "[" + count + "] " + name + ";");
+        }
+    };
+    ShaderGenerator.prototype.addUniform = function (name, type) {
         this.addLine("uniform " + types_1.convertTypeName(type) + " " + name + ";");
-        if (type == "Vector2Array" || type == "FloatArray" || type == "Vector3Array" || type == "Vector4Array") {
+        if (type == "Vector2Array" || type == "FloatArray" || type == "Vector3Array" || type == "Vector4Array" || type == "ColorArray") {
             this.addLine("uniform int " + name + "_length;");
         }
+        if (type == "Vector2Image" || type == "FloatImage" || type == "Vector3Image" || type == "Vector4Image" || type == "Image") {
+            this.addLine("uniform int " + name + "_width;");
+            this.addLine("uniform int " + name + "_height;");
+        }
     };
-    CodeGenerator.prototype.addAttribute = function (name, type) {
+    ShaderGenerator.prototype.addAttribute = function (name, type) {
         this.addLine("attribute " + types_1.convertTypeName(type) + " " + name + ";");
     };
-    CodeGenerator.prototype.addVarying = function (name, type) {
+    ShaderGenerator.prototype.addVarying = function (name, type) {
         this.addLine("varying " + types_1.convertTypeName(type) + " " + name + ";");
-        if (name == "out_position") {
-            this._positionType = type;
-        }
-        if (name == "out_color") {
-            this._hasColor = true;
-        }
-        if (name == "out_normal") {
-            this._hasNormal = true;
-        }
     };
-    CodeGenerator.prototype.generateExpression = function (expr) {
+    ShaderGenerator.prototype.addIn = function (name, type) {
+        this.addLine("in " + types_1.convertTypeName(type) + " " + name + ";");
+    };
+    ShaderGenerator.prototype.addOut = function (name, type) {
+        this.addLine("out " + types_1.convertTypeName(type) + " " + name + ";");
+    };
+    ShaderGenerator.prototype.generateExpression = function (expr) {
         var _this = this;
         switch (expr.type) {
             case "constant": {
@@ -8163,7 +8187,7 @@ var CodeGenerator = (function () {
             }
         }
     };
-    CodeGenerator.prototype.addStatement = function (stat) {
+    ShaderGenerator.prototype.addStatement = function (stat) {
         switch (stat.type) {
             case "assign":
                 {
@@ -8215,203 +8239,64 @@ var CodeGenerator = (function () {
             case "emit":
                 {
                     var sEmit = stat;
-                    if (this._mode == GenerateMode.FRAGMENT) {
-                        for (var name_1 in sEmit.attributes) {
-                            this.addLine("fout_" + name_1 + " = " + this.generateExpression(sEmit.attributes[name_1]) + ";");
-                        }
-                    }
-                    else {
-                        for (var name_2 in sEmit.attributes) {
-                            this.addLine("out_" + name_2 + " = " + this.generateExpression(sEmit.attributes[name_2]) + ";");
-                        }
-                    }
-                    if (this._mode == GenerateMode.PICK) {
-                        this.addLine("out_pick_index = vec4(s3_pick_index.rgb, s3_pick_index_alpha);");
-                    }
-                    if (this._mode == GenerateMode.FRAGMENT) {
-                        this.addLine("gl_FragColor = fout_color;");
-                    }
-                    else {
-                        switch (this._positionType) {
-                            case "Vector2":
-                                {
-                                    this.addLine("gl_Position = s3_render_vertex(vec3(out_position, 0.0));");
-                                }
-                                break;
-                            case "Vector3":
-                                {
-                                    this.addLine("gl_Position = s3_render_vertex(out_position);");
-                                }
-                                break;
-                            case "Vector4":
-                                {
-                                    this.addLine("gl_Position = s3_render_vertex(out_position.xyz);");
-                                }
-                                break;
-                        }
-                    }
+                    this.addEmitStatement(sEmit);
                 }
                 break;
         }
     };
-    CodeGenerator.prototype.addStatements = function (stat) {
+    ShaderGenerator.prototype.addStatements = function (stat) {
         var _this = this;
         stat.forEach(function (s) { return _this.addStatement(s); });
     };
-    CodeGenerator.prototype.getCode = function () {
+    // Override these
+    ShaderGenerator.prototype.addEmitStatement = function (s) {
+        this.addLine("// Emit Statement");
+    };
+    return ShaderGenerator;
+}(LinesGenerator));
+exports.ShaderGenerator = ShaderGenerator;
+var ProgramGenerator = (function () {
+    function ProgramGenerator(spec, shader, asUniform) {
         var _this = this;
-        return this._lines.map(function (line) {
-            if (line.trim() == "@additionalCode")
-                return _this._additionalCodes.join("\n");
-            return line;
-        }).join("\n");
-    };
-    return CodeGenerator;
-}());
-exports.CodeGenerator = CodeGenerator;
-var Generator = (function () {
-    function Generator(viewType, mode) {
-        if (mode === void 0) { mode = GenerateMode.NORMAL; }
-        this._mode = mode;
-        this._viewType = viewType;
+        this._spec = spec;
+        this._shader = shader;
+        this._asUniform = asUniform;
+        // Make a record of existing names
+        this._names = {};
+        var record_names = function (map) {
+            for (var name_1 in map) {
+                if (map.hasOwnProperty(name_1)) {
+                    _this._names[name_1] = true;
+                }
+            }
+        };
+        record_names(spec.input);
+        record_names(spec.output);
+        record_names(spec.variables);
+        record_names(shader.input);
+        record_names(shader.output);
     }
-    Generator.prototype.compileVertexShader = function (spec, asUniform) {
-        var gen = new CodeGenerator(this._viewType, this._mode);
-        gen.addLine("precision highp float;");
-        // Global attributes.
-        for (var name_3 in spec.input) {
-            if (spec.input.hasOwnProperty(name_3)) {
-                if (asUniform(name_3)) {
-                    gen.addUniform(name_3, spec.input[name_3].type);
-                }
-                else {
-                    gen.addAttribute(name_3, spec.input[name_3].type);
-                }
+    ProgramGenerator.prototype.getUnusedName = function (hint) {
+        var index = 0;
+        while (true) {
+            var candidate = "s3" + hint + index.toString();
+            if (this._names[candidate] === true) {
+                index += 1;
+                continue;
             }
+            this._names[candidate] = true;
+            return candidate;
         }
-        if (this._mode == GenerateMode.PICK) {
-            gen.addAttribute("s3_pick_index", "Vector4");
-            gen.addUniform("s3_pick_index_alpha", "float");
-        }
-        switch (this._viewType) {
-            case ViewType.VIEW_2D:
-                {
-                    gen.addUniform("s3_view_params", "Vector4");
-                    gen.addAdditionalCode("\n                    vec4 s3_render_vertex(vec3 p) {\n                        return vec4(p.xy * s3_view_params.xy + s3_view_params.zw, 0.0, 1.0);\n                    }\n                ");
-                }
-                break;
-            case ViewType.VIEW_3D:
-                {
-                    gen.addUniform("s3_view_params", "Vector4");
-                    gen.addUniform("s3_view_position", "Vector3");
-                    gen.addUniform("s3_view_rotation", "Vector4");
-                    gen.addAdditionalCode("\n                    vec4 s3_render_vertex(vec3 p) {\n                        // Get position in view coordinates:\n                        //   v = quaternion_inverse_rotate(rotation, p - position)\n                        vec3 v = p - s3_view_position;\n                        float d = dot(s3_view_rotation.xyz, v);\n                        vec3 c = cross(s3_view_rotation.xyz, v);\n                        v = s3_view_rotation.w * s3_view_rotation.w * v - (s3_view_rotation.w + s3_view_rotation.w) * c + d * s3_view_rotation.xyz - cross(c, s3_view_rotation.xyz);\n                        // Compute projection.\n                        vec4 r;\n                        r.xy = v.xy * s3_view_params.xy;\n                        r.z = v.z * s3_view_params.z + s3_view_params.w;\n                        r.w = -v.z;\n                        return r;\n                    }\n                ");
-                }
-                break;
-            case ViewType.VIEW_WEBVR:
-                {
-                    // For WebVR, we use the MVP matrix provided by it.
-                    gen.addUniform("s3_projection_matrix", "Matrix4");
-                    gen.addUniform("s3_view_matrix", "Matrix4");
-                    gen.addUniform("s3_view_position", "Vector3");
-                    gen.addUniform("s3_view_rotation", "Vector4");
-                    gen.addAdditionalCode("\n                    vec4 s3_render_vertex(vec3 p) {\n                        vec3 v = p - s3_view_position;\n                        float d = dot(s3_view_rotation.xyz, v);\n                        vec3 c = cross(s3_view_rotation.xyz, v);\n                        v = s3_view_rotation.w * s3_view_rotation.w * v - (s3_view_rotation.w + s3_view_rotation.w) * c + d * s3_view_rotation.xyz - cross(c, s3_view_rotation.xyz);\n                        return s3_projection_matrix * s3_view_matrix * vec4(v, 1);\n                    }\n                ");
-                }
-                break;
-        }
-        gen.addLine("@additionalCode");
-        // Output attributes.
-        for (var name_4 in spec.output) {
-            if (spec.output.hasOwnProperty(name_4)) {
-                gen.addVarying("out_" + name_4, spec.output[name_4].type);
-            }
-        }
-        if (this._mode == GenerateMode.PICK) {
-            gen.addVarying("out_pick_index", "Vector4");
-        }
-        // The main function.
-        gen.addLine("void main() {");
-        gen.indent();
-        // Define arguments.
-        for (var name_5 in spec.variables) {
-            if (spec.variables.hasOwnProperty(name_5)) {
-                var type = spec.variables[name_5];
-                gen.addDeclaration(name_5, type);
-            }
-        }
-        gen.addStatements(spec.statements);
-        gen.unindent();
-        gen.addLine("}");
-        return gen;
     };
-    Generator.prototype.compileFragmentShader = function (mspec, spec, asUniform) {
-        var gen = new CodeGenerator(this._viewType, GenerateMode.FRAGMENT);
-        gen.addLine("precision highp float;");
-        // Global attributes.
-        for (var name_6 in spec.input) {
-            if (spec.input.hasOwnProperty(name_6)) {
-                if (mspec.output[name_6]) {
-                    gen.addVarying("out_" + name_6, spec.input[name_6].type);
-                }
-                else {
-                    if (asUniform(name_6)) {
-                        gen.addUniform(name_6, spec.input[name_6].type);
-                    }
-                }
-            }
-        }
-        // Output attributes.
-        for (var name_7 in spec.output) {
-            if (spec.output.hasOwnProperty(name_7)) {
-                gen.addDeclaration("fout_" + name_7, spec.output[name_7].type);
-            }
-        }
-        // The main function.
-        gen.addLine("void main() {");
-        gen.indent();
-        // Define arguments.
-        for (var name_8 in spec.variables) {
-            if (spec.variables.hasOwnProperty(name_8)) {
-                var type = spec.variables[name_8];
-                gen.addDeclaration(name_8, type);
-            }
-        }
-        for (var name_9 in spec.input) {
-            if (spec.input.hasOwnProperty(name_9)) {
-                if (mspec.output[name_9]) {
-                    gen.addLine(types_1.convertTypeName(spec.input[name_9].type) + " " + name_9 + " = out_" + name_9 + ";");
-                }
-                else {
-                    gen.addLine(types_1.convertTypeName(spec.input[name_9].type) + " " + name_9 + ";");
-                }
-            }
-        }
-        gen.addStatements(spec.statements);
-        gen.unindent();
-        gen.addLine("}");
-        return gen;
+    // Should we pass the mark input `name` to the fragment shader?
+    ProgramGenerator.prototype.fragmentPassthru = function (name) {
+        return this._spec.input.hasOwnProperty(name) && !this._spec.output.hasOwnProperty(name);
     };
-    Generator.prototype.compileSpecification = function (spec, shader, asUniform) {
-        this._vertexCode = this.compileVertexShader(spec, asUniform).getCode();
-        if (this._mode == GenerateMode.PICK) {
-            this._fragmentCode = "\n                precision highp float;\n                varying vec4 out_pick_index;\n                void main() {\n                    gl_FragColor = out_pick_index;\n                }\n            ";
-        }
-        else {
-            this._fragmentCode = this.compileFragmentShader(spec, shader, asUniform).getCode();
-        }
-        console.log(this._fragmentCode, this._vertexCode);
-    };
-    Generator.prototype.getVertexCode = function () {
-        return this._vertexCode;
-    };
-    Generator.prototype.getFragmentCode = function () {
-        return this._fragmentCode;
-    };
-    return Generator;
+    return ProgramGenerator;
 }());
-exports.Generator = Generator;
+exports.ProgramGenerator = ProgramGenerator;
 
-},{"./intrinsics":32,"./types":33}],32:[function(require,module,exports){
+},{"./intrinsics":31,"./types":32,"stardust-core":27}],31:[function(require,module,exports){
 "use strict";
 var stardust_core_1 = require("stardust-core");
 var stardust_core_2 = require("stardust-core");
@@ -8498,6 +8383,7 @@ ImplementSimpleFunction("quat_rotate", ["Quaternion", "Vector3"], "Vector3", "s3
 var colorCode = "\n    float s3_lab2rgb_curve(float v) {\n        float p = pow(v, 3.0);\n        if(p > 0.008856) {\n            return p;\n        } else {\n            return (v - 16.0 / 116.0) / 7.787;\n        }\n    }\n    float s3_lab2rgb_curve2(float v) {\n        if(v > 0.0031308) {\n            return 1.055 * pow(v , (1.0 / 2.4)) - 0.055;\n        } else {\n            return 12.92 * v;\n        }\n    }\n    vec4 s3_lab2rgb(vec4 lab) {\n        float var_Y = (lab.x + 0.160) / 1.160;\n        float var_X = lab.y / 5.0 + var_Y;\n        float var_Z = var_Y - lab.z / 2.0;\n\n        var_X = s3_lab2rgb_curve(var_X) * 0.95047;\n        var_Y = s3_lab2rgb_curve(var_Y);\n        var_Z = s3_lab2rgb_curve(var_Z) * 1.08883;\n\n        float var_R = var_X *  3.2406 + var_Y * -1.5372 + var_Z * -0.4986;\n        float var_G = var_X * -0.9689 + var_Y *  1.8758 + var_Z *  0.0415;\n        float var_B = var_X *  0.0557 + var_Y * -0.2040 + var_Z *  1.0570;\n\n        var_R = s3_lab2rgb_curve2(var_R);\n        var_G = s3_lab2rgb_curve2(var_G);\n        var_B = s3_lab2rgb_curve2(var_B);\n\n        return vec4(var_R, var_G, var_B, lab.a);\n    }\n    vec4 s3_hcl2rgb(vec4 hcl) {\n        vec4 lab = vec4(hcl.z, hcl.y * cos(hcl.x), hcl.y * sin(hcl.x), hcl.a);\n        return s3_lab2rgb(lab);\n    }\n";
 ImplementSimpleFunction("lab2rgb", ["Color"], "Color", "s3_lab2rgb", colorCode);
 ImplementSimpleFunction("hcl2rgb", ["Color"], "Color", "s3_hcl2rgb", colorCode);
+ImplementSimpleFunction("abs", ["float"], "float", "abs");
 ImplementSimpleFunction("sqrt", ["float"], "float", "sqrt");
 ImplementSimpleFunction("exp", ["float"], "float", "exp");
 ImplementSimpleFunction("log", ["float"], "float", "log");
@@ -8508,6 +8394,7 @@ ImplementSimpleFunction("asin", ["float"], "float", "asin");
 ImplementSimpleFunction("acos", ["float"], "float", "acos");
 ImplementSimpleFunction("atan", ["float"], "float", "atan");
 ImplementSimpleFunction("atan2", ["float", "float"], "float", "atan2");
+ImplementSimpleFunction("abs", ["int"], "int", "abs");
 ImplementSimpleFunction("min", ["float", "float"], "float", "min");
 ImplementSimpleFunction("max", ["float", "float"], "float", "max");
 ImplementSimpleFunction("ceil", ["float"], "float", "ceil");
@@ -8520,7 +8407,16 @@ ImplementSimpleFunction("mix", ["Color", "Color", "float"], "Color", "mix");
 ImplementFunction("clamp", ["float"], "float", function (a) { return ("clamp(" + a + ", 0, 1)"); });
 ImplementTypeConversion("float", "int", function (a) { return ("int(" + a + ")"); });
 ImplementTypeConversion("int", "float", function (a) { return ("float(" + a + ")"); });
+ImplementFunction("array", ["FloatArray", "float"], "float", function (a, b) { return ("texture2D(" + a + ", vec2((" + b + " + 0.5) / float(" + a + "_length), 0.5)).x"); });
 ImplementFunction("array", ["Vector2Array", "float"], "Vector2", function (a, b) { return ("texture2D(" + a + ", vec2((" + b + " + 0.5) / float(" + a + "_length), 0.5)).xy"); });
+ImplementFunction("array", ["Vector3Array", "float"], "Vector3", function (a, b) { return ("texture2D(" + a + ", vec2((" + b + " + 0.5) / float(" + a + "_length), 0.5)).xyz"); });
+ImplementFunction("array", ["Vector4Array", "float"], "Vector4", function (a, b) { return ("texture2D(" + a + ", vec2((" + b + " + 0.5) / float(" + a + "_length), 0.5)).xyzw"); });
+ImplementFunction("array", ["ColorArray", "float"], "Color", function (a, b) { return ("texture2D(" + a + ", vec2((" + b + " + 0.5) / float(" + a + "_length), 0.5)).rgba"); });
+ImplementFunction("image", ["FloatImage", "Vector2"], "float", function (a, b) { return ("texture2D(" + a + ", (" + b + " + 0.5) / vec2(" + a + "_width, " + a + "_height))).x"); });
+ImplementFunction("image", ["Vector2Image", "Vector2"], "Vector2", function (a, b) { return ("texture2D(" + a + ", (" + b + " + 0.5) / vec2(" + a + "_width, " + a + "_height))).xy"); });
+ImplementFunction("image", ["Vector3Image", "Vector2"], "Vector3", function (a, b) { return ("texture2D(" + a + ", (" + b + " + 0.5) / vec2(" + a + "_width, " + a + "_height))).xyz"); });
+ImplementFunction("image", ["Vector4Image", "Vector2"], "Vector4", function (a, b) { return ("texture2D(" + a + ", (" + b + " + 0.5) / vec2(" + a + "_width, " + a + "_height))).xyzw"); });
+ImplementFunction("image", ["ColorImage", "Vector2"], "Color", function (a, b) { return ("texture2D(" + a + ", (" + b + " + 0.5) / vec2(" + a + "_width, " + a + "_height))).rgba"); });
 function generateIntrinsicFunction(name, args) {
     if (intrinsicImplementations.has(name)) {
         if (intrinsicsCodeBase.has(name)) {
@@ -8536,9 +8432,10 @@ function generateIntrinsicFunction(name, args) {
 }
 exports.generateIntrinsicFunction = generateIntrinsicFunction;
 
-},{"stardust-core":27}],33:[function(require,module,exports){
+},{"stardust-core":27}],32:[function(require,module,exports){
+// Declare the types
 "use strict";
-var typeName2WebGLTypeName = {
+var typeName2GLSLTypeName = {
     "float": "float",
     "int": "int",
     "bool": "bool",
@@ -8555,7 +8452,7 @@ var typeName2WebGLTypeName = {
     "Vector4Array": "sampler2D"
 };
 function convertTypeName(name) {
-    return typeName2WebGLTypeName[name];
+    return typeName2GLSLTypeName[name];
 }
 exports.convertTypeName = convertTypeName;
 function convertConstant(type, value) {
@@ -8577,13 +8474,272 @@ function convertConstant(type, value) {
     if (type == "Vector4") {
         return "vec4(" + value.join(", ") + ")";
     }
+    if (type == "Quaternion") {
+        return "vec4(" + value.join(", ") + ")";
+    }
     if (type == "Color") {
         return "vec4(" + value.join(", ") + ")";
     }
 }
 exports.convertConstant = convertConstant;
 
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
+"use strict";
+exports.version = "0.1.1";
+var webgl_1 = require("./webgl/webgl");
+exports.WebGLPlatform = webgl_1.WebGLPlatform;
+exports.WebGLCanvasPlatform2D = webgl_1.WebGLCanvasPlatform2D;
+exports.WebGLCanvasPlatform3D = webgl_1.WebGLCanvasPlatform3D;
+exports.WebGLCanvasPlatformWebVR = webgl_1.WebGLCanvasPlatformWebVR;
+var stardust_core_1 = require("stardust-core");
+var webgl_2 = require("./webgl/webgl");
+stardust_core_1.registerPlatformConstructor("webgl-2d", function (canvas, width, height) {
+    if (width === void 0) { width = 600; }
+    if (height === void 0) { height = 400; }
+    return new webgl_2.WebGLCanvasPlatform2D(canvas, width, height);
+});
+stardust_core_1.registerPlatformConstructor("webgl-3d", function (canvas, width, height) {
+    if (width === void 0) { width = 600; }
+    if (height === void 0) { height = 400; }
+    return new webgl_2.WebGLCanvasPlatform3D(canvas, width, height);
+});
+stardust_core_1.registerPlatformConstructor("webgl-webvr", function (canvas, width, height) {
+    if (width === void 0) { width = 600; }
+    if (height === void 0) { height = 400; }
+    return new webgl_2.WebGLCanvasPlatformWebVR(canvas, width, height);
+});
+
+},{"./webgl/webgl":35,"stardust-core":27}],34:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+var glsl_1 = require("../glsl/glsl");
+var stardust_core_1 = require("stardust-core");
+(function (GenerateMode) {
+    GenerateMode[GenerateMode["NORMAL"] = 0] = "NORMAL";
+    GenerateMode[GenerateMode["PICK"] = 1] = "PICK";
+    GenerateMode[GenerateMode["FRAGMENT"] = 2] = "FRAGMENT";
+})(exports.GenerateMode || (exports.GenerateMode = {}));
+var GenerateMode = exports.GenerateMode;
+(function (ViewType) {
+    ViewType[ViewType["VIEW_2D"] = 0] = "VIEW_2D";
+    ViewType[ViewType["VIEW_3D"] = 1] = "VIEW_3D";
+    ViewType[ViewType["VIEW_WEBVR"] = 2] = "VIEW_WEBVR"; // WebVR mode.
+})(exports.ViewType || (exports.ViewType = {}));
+var ViewType = exports.ViewType;
+var GLSLVertexShaderGenerator = (function (_super) {
+    __extends(GLSLVertexShaderGenerator, _super);
+    function GLSLVertexShaderGenerator(parent) {
+        _super.call(this);
+        this._parent = parent;
+    }
+    GLSLVertexShaderGenerator.prototype.addEmitStatement = function (sEmit) {
+        for (var name_1 in sEmit.attributes) {
+            this.addLine(this._parent._voutMapping.get(name_1) + " = " + this.generateExpression(sEmit.attributes[name_1]) + ";");
+        }
+        if (this._parent._mode == GenerateMode.PICK) {
+            this.addLine("out_pick_index = vec4(s3_pick_index.rgb, s3_pick_index_alpha);");
+        }
+        var position = this._parent._voutMapping.get("position");
+        switch (this._parent._spec.output["position"].type) {
+            case "Vector2":
+                {
+                    this.addLine("gl_Position = s3_render_vertex(vec3(" + position + ", 0.0));");
+                }
+                break;
+            case "Vector3":
+                {
+                    this.addLine("gl_Position = s3_render_vertex(" + position + ");");
+                }
+                break;
+            case "Vector4":
+                {
+                    this.addLine("gl_Position = s3_render_vertex(" + position + ".xyz);");
+                }
+                break;
+        }
+    };
+    return GLSLVertexShaderGenerator;
+}(glsl_1.ShaderGenerator));
+exports.GLSLVertexShaderGenerator = GLSLVertexShaderGenerator;
+var GLSLFragmentShaderGenerator = (function (_super) {
+    __extends(GLSLFragmentShaderGenerator, _super);
+    function GLSLFragmentShaderGenerator(parent) {
+        _super.call(this);
+        this._parent = parent;
+    }
+    GLSLFragmentShaderGenerator.prototype.addEmitStatement = function (sEmit) {
+        this.addLine("gl_FragColor = " + this.generateExpression(sEmit.attributes["color"]) + ";");
+    };
+    return GLSLFragmentShaderGenerator;
+}(glsl_1.ShaderGenerator));
+exports.GLSLFragmentShaderGenerator = GLSLFragmentShaderGenerator;
+var Generator = (function (_super) {
+    __extends(Generator, _super);
+    function Generator(spec, shader, asUniform, viewType, mode) {
+        if (mode === void 0) { mode = GenerateMode.NORMAL; }
+        _super.call(this, spec, shader, asUniform);
+        this._mode = mode;
+        this._viewType = viewType;
+        this._vertex = new GLSLVertexShaderGenerator(this);
+        this._fragment = new GLSLFragmentShaderGenerator(this);
+        this.compile();
+    }
+    Generator.prototype.compile = function () {
+        var _this = this;
+        var spec = this._spec;
+        var shader = this._shader;
+        var asUniform = this._asUniform;
+        this._voutMapping = new stardust_core_1.Dictionary();
+        this._foutMapping = new stardust_core_1.Dictionary();
+        this._vertex.addLine("precision highp float;");
+        this._fragment.addLine("precision highp float;");
+        if (this._mode == GenerateMode.PICK) {
+            this._vertex.addAttribute("s3_pick_index", "Vector4");
+            this._vertex.addUniform("s3_pick_index_alpha", "float");
+        }
+        switch (this._viewType) {
+            case ViewType.VIEW_2D:
+                {
+                    this._vertex.addUniform("s3_view_params", "Vector4");
+                    this._vertex.addAdditionalCode("\n                    vec4 s3_render_vertex(vec3 p) {\n                        return vec4(p.xy * s3_view_params.xy + s3_view_params.zw, 0.0, 1.0);\n                    }\n                ");
+                }
+                break;
+            case ViewType.VIEW_3D:
+                {
+                    this._vertex.addUniform("s3_view_params", "Vector4");
+                    this._vertex.addUniform("s3_view_position", "Vector3");
+                    this._vertex.addUniform("s3_view_rotation", "Vector4");
+                    this._vertex.addAdditionalCode("\n                    vec4 s3_render_vertex(vec3 p) {\n                        // Get position in view coordinates:\n                        //   v = quaternion_inverse_rotate(rotation, p - position)\n                        vec3 v = p - s3_view_position;\n                        float d = dot(s3_view_rotation.xyz, v);\n                        vec3 c = cross(s3_view_rotation.xyz, v);\n                        v = s3_view_rotation.w * s3_view_rotation.w * v - (s3_view_rotation.w + s3_view_rotation.w) * c + d * s3_view_rotation.xyz - cross(c, s3_view_rotation.xyz);\n                        // Compute projection.\n                        vec4 r;\n                        r.xy = v.xy * s3_view_params.xy;\n                        r.z = v.z * s3_view_params.z + s3_view_params.w;\n                        r.w = -v.z;\n                        return r;\n                    }\n                ");
+                }
+                break;
+            case ViewType.VIEW_WEBVR:
+                {
+                    // For WebVR, we use the MVP matrix provided by it.
+                    this._vertex.addUniform("s3_projection_matrix", "Matrix4");
+                    this._vertex.addUniform("s3_view_matrix", "Matrix4");
+                    this._vertex.addUniform("s3_view_position", "Vector3");
+                    this._vertex.addUniform("s3_view_rotation", "Vector4");
+                    this._vertex.addAdditionalCode("\n                    vec4 s3_render_vertex(vec3 p) {\n                        vec3 v = p - s3_view_position;\n                        float d = dot(s3_view_rotation.xyz, v);\n                        vec3 c = cross(s3_view_rotation.xyz, v);\n                        v = s3_view_rotation.w * s3_view_rotation.w * v - (s3_view_rotation.w + s3_view_rotation.w) * c + d * s3_view_rotation.xyz - cross(c, s3_view_rotation.xyz);\n                        return s3_projection_matrix * s3_view_matrix * vec4(v, 1);\n                    }\n                ");
+                }
+                break;
+        }
+        // Input attributes.
+        for (var name_2 in spec.input) {
+            if (spec.input.hasOwnProperty(name_2)) {
+                if (asUniform(name_2)) {
+                    this._vertex.addUniform(name_2, spec.input[name_2].type);
+                }
+                else {
+                    this._vertex.addAttribute(name_2, spec.input[name_2].type);
+                }
+            }
+        }
+        this._vertex.addLine("@additionalCode");
+        // Output attributes.
+        for (var name_3 in spec.output) {
+            if (spec.output.hasOwnProperty(name_3)) {
+                var oname = this.getUnusedName(name_3);
+                this._voutMapping.set(name_3, oname);
+                this._vertex.addVarying(oname, spec.output[name_3].type);
+            }
+        }
+        // Fragment shader inputs
+        var fragment_passthrus = []; // gname, input_name
+        for (var name_4 in shader.input) {
+            if (shader.input.hasOwnProperty(name_4)) {
+                if (this.fragmentPassthru(name_4)) {
+                    var gname = this.getUnusedName(name_4);
+                    fragment_passthrus.push([gname, name_4]);
+                    this._vertex.addVarying(gname, shader.input[name_4].type);
+                    this._fragment.addVarying(gname, shader.input[name_4].type);
+                }
+                else {
+                    var gname = this._voutMapping.get(name_4);
+                    this._fragment.addVarying(gname, shader.input[name_4].type);
+                }
+            }
+        }
+        if (this._mode == GenerateMode.PICK) {
+            this._vertex.addVarying("out_pick_index", "Vector4");
+        }
+        // The main function.
+        this._vertex.addLine("void main() {");
+        this._vertex.indent();
+        // Define arguments.
+        for (var name_5 in spec.variables) {
+            if (spec.variables.hasOwnProperty(name_5)) {
+                var type = spec.variables[name_5];
+                this._vertex.addDeclaration(name_5, type);
+            }
+        }
+        this._vertex.addStatements(spec.statements);
+        this._vertex.unindent();
+        this._vertex.addLine("}");
+        this._vertexCode = this._vertex.getCode();
+        if (this._mode == GenerateMode.PICK) {
+            this._fragmentCode = "\n                precision highp float;\n                varying vec4 out_pick_index;\n                void main() {\n                    gl_FragColor = out_pick_index;\n                }\n            ";
+        }
+        else {
+            // Input attributes.
+            // Output attributes.
+            for (var name_6 in shader.output) {
+                if (shader.output.hasOwnProperty(name_6)) {
+                    var oname = this.getUnusedName(name_6);
+                    this._foutMapping.set(name_6, oname);
+                    this._fragment.addDeclaration(oname, shader.output[name_6].type);
+                }
+            }
+            // The main function.
+            this._fragment.addLine("void main() {");
+            this._fragment.indent();
+            // Define arguments.
+            for (var name_7 in shader.variables) {
+                if (shader.variables.hasOwnProperty(name_7)) {
+                    var type = shader.variables[name_7];
+                    this._fragment.addDeclaration(name_7, type);
+                }
+            }
+            var _loop_1 = function(name_8) {
+                if (shader.input.hasOwnProperty(name_8)) {
+                    if (this_1.fragmentPassthru(name_8)) {
+                        fragment_passthrus.forEach(function (_a) {
+                            var gname = _a[0], vname = _a[1];
+                            if (vname == name_8) {
+                                _this._fragment.addLine(name_8 + " = " + gname + ";");
+                            }
+                        });
+                    }
+                    else {
+                        this_1._fragment.addDeclaration(name_8, shader.input[name_8].type);
+                        this_1._fragment.addLine(name_8 + " = " + this_1._voutMapping.get(name_8) + ";");
+                    }
+                }
+            };
+            var this_1 = this;
+            for (var name_8 in shader.input) {
+                _loop_1(name_8);
+            }
+            this._fragment.addStatements(shader.statements);
+            this._fragment.unindent();
+            this._fragment.addLine("}");
+            this._fragmentCode = this._fragment.getCode();
+        }
+    };
+    Generator.prototype.getVertexCode = function () {
+        return this._vertexCode;
+    };
+    Generator.prototype.getFragmentCode = function () {
+        return this._fragmentCode;
+    };
+    return Generator;
+}(glsl_1.ProgramGenerator));
+exports.Generator = Generator;
+
+},{"../glsl/glsl":30,"stardust-core":27}],35:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -8601,8 +8757,7 @@ var WebGLUtils = require("./webglutils");
 var WebGLPlatformMarkProgram = (function () {
     function WebGLPlatformMarkProgram(GL, spec, shader, asUniform, viewType, mode) {
         this._GL = GL;
-        var generator = new generator_1.Generator(viewType, mode);
-        generator.compileSpecification(spec, shader, asUniform);
+        var generator = new generator_1.Generator(spec, shader, asUniform, viewType, mode);
         this._program = WebGLUtils.compileProgram(this._GL, generator.getVertexCode(), generator.getFragmentCode());
         this._uniformLocations = new stardust_core_3.Dictionary();
         this._attribLocations = new stardust_core_3.Dictionary();
@@ -8683,7 +8838,13 @@ var WebGLPlatformMarkProgram = (function () {
             GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, newData.width, newData.height, 0, GL.RGBA, GL.FLOAT, newData.data);
             GL.bindTexture(GL.TEXTURE_2D, null);
             this.use();
-            this.setUniform(name + "_length", stardust_core_1.types["int"], newData.width);
+            if (newData.dimensions == 1) {
+                this.setUniform(name + "_length", stardust_core_1.types["int"], newData.width);
+            }
+            if (newData.dimensions == 2) {
+                this.setUniform(name + "_width", stardust_core_1.types["int"], newData.width);
+                this.setUniform(name + "_height", stardust_core_1.types["int"], newData.height);
+            }
         }
     };
     WebGLPlatformMarkProgram.prototype.bindTextures = function () {
@@ -9096,7 +9257,7 @@ var WebGLPlatform = (function (_super) {
         this._renderMode = generator_1.GenerateMode.NORMAL;
     };
     WebGLPlatform.prototype.getPickingPixel = function (x, y) {
-        if (x < 0 || y < 0 || x >= this._pickFramebufferWidth || y >= this._pickFramebufferHeight) {
+        if (this._pickMarks == null || x < 0 || y < 0 || x >= this._pickFramebufferWidth || y >= this._pickFramebufferHeight) {
             return null;
         }
         var GL = this._GL;
@@ -9307,7 +9468,7 @@ var WebGLCanvasPlatformWebVR = (function (_super) {
 }(WebGLPlatform));
 exports.WebGLCanvasPlatformWebVR = WebGLCanvasPlatformWebVR;
 
-},{"./generator":31,"./webglutils":35,"stardust-core":27}],35:[function(require,module,exports){
+},{"./generator":34,"./webglutils":36,"stardust-core":27}],36:[function(require,module,exports){
 "use strict";
 var stardust_core_1 = require("stardust-core");
 function compileProgram(GL, vsCode, fsCode) {
