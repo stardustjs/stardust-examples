@@ -1,1 +1,1 @@
-A scatterplot created with the [Stardust](https://stardust-vis.github.io/) library. Data is generated using a formula.
+A scatterplot created with the [Stardust](https://stardustjs.github.io/) library. Data is generated using a formula.

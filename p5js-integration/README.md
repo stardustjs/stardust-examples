@@ -1,4 +1,4 @@
-This example showing an initial integration of [Stardust](https://stardust-vis.github.io/) and [p5.js](https://p5js.org/).
+This example showing an initial integration of [Stardust](https://stardustjs.github.io/) and [p5.js](https://p5js.org/).
 There are still things left to be done:
 
 - Remove the `enableVertexAttribArray` and `blendFuncSeparate` calls.
