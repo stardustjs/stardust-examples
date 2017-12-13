@@ -23,7 +23,8 @@ export let indexTemplate = `<!DOCTYPE html>
 </ul>
 </div>`;
 
-export let jekyllTemplate = `layout: default
+export let jekyllTemplate = `---
+layout: default
 title: "{{description}}"
 ---
 <h1>{{description}}</h1>
