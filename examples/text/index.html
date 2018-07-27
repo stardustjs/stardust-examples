@@ -35,30 +35,38 @@
             (R - r) * cos(value) + d * cos((R / r - 1) * value),
             (R - r) * sin(value) - d * sin((R / r - 1) * value)
         ) * size + center
-    `).attr("d", 2.19).attr("R", 5).attr("r", 5 * (3 / 9)).attr("size", 40).attr("center", "Vector2", [480, 250]);
+    `).attr("d", 2.19).attr("R", 5).attr("r", 5 * (7 / 16)).attr("size", 40).attr("center", "Vector2", [480, 250]);
 
     text.attr("text", (d) => d);
     text.attr("up", [0, 1]);
     text.attr("position", scaleLeft2(d => d * 41));
     circles.attr("center", scaleLeft2(d => d * 41));
     var data = [];
-    for (var i = 0; i <= 50; i++) {
-        data[i] = i / (50) * Math.PI * 2;
+    for (var i = 0; i <= 300; i++) {
+        data[i] = i / (300) * Math.PI * 2;
     }
     text.data(data);
     circles.data(data);
     circles.attr("radius", 2);
 
-    text.attr("fontFamily", "Palatino");
+    var scaleColor = Stardust.scale.custom(`hcl2rgb(Color(value + shift, 0.5, 0.5, 0.5))`);
+    scaleColor.attr("shift", 0);
+
+    text.attr("fontFamily", "Arial");
+    text.attr("fontSize", 12);
+    text.attr("scale", d => (1 + Math.sin(d) / 2));
+    text.attr("color", scaleColor(d => d));
+    circles.attr("color", scaleColor(d => d));
 
     var fps = new FPS();
     var t0 = new Date().getTime();
 
     var render = function () {
         var t = new Date().getTime() - t0;
-        scaleLeft2.attr("d", 1.95 + Math.sin(t / 500) * 0.4);
+        scaleColor.attr("shift", t / 1000);
+        scaleLeft2.attr("d", 2.95 + Math.sin(t / 500) * 0.4);
 
-        text.attr("text", (d) => d.toFixed(1));
+        text.attr("text", (d) => (d + Math.sin(t / 1000)).toFixed(2));
         text.render();
         text.attr("alignX", 0.5);
         text.attr("alignY", 0);
