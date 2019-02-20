@@ -1,3 +1,8 @@
+[Archived] Stardust Example Code
+====
+
+Please use the unified repo for further development: https://github.com/stardustjs/stardust
+
 Stardust Example Code
 ====
 
