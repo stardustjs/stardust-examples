@@ -76,7 +76,7 @@ FPS.prototype.update = function() {
 
 var switches = {};
 
-d3.select("[data-switch]").each(function(s) {
+d3.selectAll("[data-switch]").each(function(s) {
     var name = d3.select(this).attr("data-switch");
     var modes = d3.select(this).selectAll("[data-value]");
     var valueDefault = modes.filter(".active").attr("data-value");
